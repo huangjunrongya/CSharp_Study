@@ -3,10 +3,10 @@
 /// <summary>
 /// 事件中心学习。
 /// </summary>
-public class EventCenter
+public class ShoppingEventCenter
 {
     /***
-     * 订单事件中心
+     * 商城事件中心
      * 委托：定义事件中心事件处理方法的签名
      * 订单：创建订单，发布事件。
      * 支付：订阅事件，支付完成发布事件
@@ -42,8 +42,8 @@ public class EventCenter
     {
         if ( orderEvents.ContainsKey(eventName))
         {
-            //调用委托，执行与委托关联的所有方法
-            orderEvents[eventName].Invoke(order);
+            //调用委托，执行与委托关联的所有方法（委托调用列表中的所有方法）
+            orderEvents[eventName]?.Invoke(order);
         }
     }
 
@@ -56,7 +56,7 @@ public class EventCenter
         {
             Console.WriteLine($"订单号：{order.orderId}创建成功");
             Console.WriteLine("开始发布订单事件");
-            EventCenter.Publish("order",order);
+            ShoppingEventCenter.Publish("order",order);
         }
     }
     
@@ -66,7 +66,7 @@ public class EventCenter
         public Pay()
         {
             //订阅订单事件
-            EventCenter.Subscription("order",PayMethod);
+            ShoppingEventCenter.Subscription("order",PayMethod);
         }
 
         //处理订单事件
@@ -88,7 +88,7 @@ public class EventCenter
                 Console.WriteLine($"订单 {order.orderId} 支付成功。");
                 Console.WriteLine("发布支付事件");
                 //发布支付事件
-                EventCenter.Publish("paymentCompleted", order); 
+                ShoppingEventCenter.Publish("paymentCompleted", order); 
             }
             else
             {
@@ -97,15 +97,32 @@ public class EventCenter
         }
     }
 
+    //配送公司
+public class Logistics
+{
+    public  Logistics()
+    {
+        //订阅支付成功事件
+        ShoppingEventCenter.Subscription("paymentCompleted",Transportation);
+    }
+    //运输
+    public void Transportation(Order order)
+    {
+        Console.WriteLine("接收到支付成功事件");
+        Console.WriteLine($"开始运输：{order.orderId}订单");
+    }
+}
+
 public class User
 {
     public static void Main()
     {
         //订阅支付事件
-        EventCenter.Subscription("paymentCompleted",Deliver);
+        ShoppingEventCenter.Subscription("paymentCompleted",Deliver);
         //初始化
         OrderSystem orderSystem = new OrderSystem();
         Pay pay = new Pay();
+        Logistics logistics = new Logistics();
         Random random = new Random();
 
         while (true)
@@ -114,14 +131,11 @@ public class User
             string id = random.Next(1000).ToString();
             Console.WriteLine("=================================");
             Console.WriteLine("用户开始创建订单");
-            orderSystem.CreateOrder(new Order(id,"iphone15ProMax,ipad pro"));
+            orderSystem.CreateOrder(new Order(id,"iphone15ProMax,ipad pro,mac"));
         }
-
-       
-        
         
     }
-    //发货
+    //发货通知
     public static void Deliver(Order order)
     {
         Console.WriteLine("接收到支付成功事件，开始发通知");
@@ -146,4 +160,22 @@ public class Order
         this.orderProduct = orderProduct;
     }
 }
+
+
+/*public class OrderSystem2
+{
+    public delegate void OrderEventHandler(Order data);
+    public event OrderEventHandler OrderCreated;
+
+    public void CreateOrder(Order order)
+    {
+        Console.WriteLine($"订单号：{order.orderId}创建成功");
+        OnOrderCreated(order);
+    }
+
+    protected virtual void OnOrderCreated(Order order)
+    {
+        OrderCreated?.Invoke(order);
+    }
+}*/
 
